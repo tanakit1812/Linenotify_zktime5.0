@@ -40,18 +40,33 @@ if not check_program_running(program_name):
 config_file_path = get_config_path()
 database_path, line_notify_token = read_config_file(config_file_path)
 
+# Check if the database file exists
+while not os.path.exists(database_path):
+    print("Can't found database file. Please provide the correct path.")
+    database_path = input("Enter the path to the .mdb database file: ")
+
+# Validate the Line Notify token by attempting a test message
+line_notify_api = 'https://notify-api.line.me/api/notify'
+headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Authorization': f'Bearer {line_notify_token}'
+}
+
+def send_test_line_notify():
+    payload = {'message': 'Test message for Line Notify token validation.'}
+    response = requests.post(line_notify_api, headers=headers, data=payload)
+    return response.status_code == 200
+
+while not send_test_line_notify():
+    print("Can't connect to Line Notify API with the provided token.")
+    line_notify_token = input("Enter a valid Line Notify token: ")
+    headers['Authorization'] = f'Bearer {line_notify_token}'
+
 # สร้างการเชื่อมต่อ
 conn_str = (
     r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
     rf'DBQ={database_path};'
 )
-
-line_notify_api = 'https://notify-api.line.me/api/notify'
-
-headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Authorization': f'Bearer {line_notify_token}'
-}
 
 def get_latest_records(cursor, latest_checktime):
     query = """
@@ -68,7 +83,7 @@ def send_line_notify(message):
     payload = {'message': message}
     response = requests.post(line_notify_api, headers=headers, data=payload)
     if response.status_code == 200:
-        print("send attendance successfully")
+        print("Send attendance successfully.")
     else:
         print(f"Failed to send attendance. Status code: {response.status_code}")
 
